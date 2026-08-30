@@ -19,6 +19,7 @@ static NSMutableDictionary<NSString *, NSDictionary<NSString *, NSString *> *> *
 static NSMutableDictionary<NSString *, NSData *> *YTKACESABRBodiesByVideo;
 static NSMutableDictionary<NSData *, NSDictionary<NSString *, NSString *> *> *YTKACESABRHeadersByConfig;
 static NSMutableDictionary<NSData *, NSData *> *YTKACESABRBodiesByConfig;
+static const NSUInteger YTKACESABRRequestCacheLimit = 32;
 static NSString *YTKACEPBFieldSummary(NSData *data);
 static BOOL YTKACESABRIsPlaybackBody(NSData *data);
 static NSData *YTKACEPBDataField(NSData *data, NSUInteger wanted);
@@ -60,15 +61,16 @@ void YTKACESABRSetNativeHeaders(NSDictionary<NSString *, NSString *> *headers) {
             if (YTKACESABRHeadersByVideo == nil) {
                 YTKACESABRHeadersByVideo = [NSMutableDictionary dictionary];
             }
+            if (YTKACESABRHeadersByVideo[YTKACESABRCurrentVideoID] == nil &&
+                YTKACESABRHeadersByVideo.count >= YTKACESABRRequestCacheLimit) {
+                [YTKACESABRHeadersByVideo removeAllObjects];
+                [YTKACESABRBodiesByVideo removeAllObjects];
+            }
             YTKACESABRHeadersByVideo[YTKACESABRCurrentVideoID] = [headers copy];
         }
     }
-    NSMutableArray<NSString *> *summary = [NSMutableArray array];
-    for (NSString *key in headers) {
-        [summary addObject:[NSString stringWithFormat:@"%@:%lu", key,
-            (unsigned long)[headers[key] length]]];
-    }
-    YTKACEDownloadLog(@"native", @"headers %@", [summary componentsJoinedByString:@","]);
+    YTKACEDownloadLog(@"native", @"captured headers count=%lu",
+        (unsigned long)headers.count);
 }
 
 static NSDictionary<NSString *, NSString *> *YTKACESABRCurrentNativeHeaders(
@@ -99,6 +101,11 @@ void YTKACESABRSetNativeRequest(NSURLRequest *request) {
             if (YTKACESABRBodiesByVideo == nil) {
                 YTKACESABRBodiesByVideo = [NSMutableDictionary dictionary];
             }
+            if (YTKACESABRBodiesByVideo[YTKACESABRCurrentVideoID] == nil &&
+                YTKACESABRBodiesByVideo.count >= YTKACESABRRequestCacheLimit) {
+                [YTKACESABRHeadersByVideo removeAllObjects];
+                [YTKACESABRBodiesByVideo removeAllObjects];
+            }
             YTKACESABRBodiesByVideo[YTKACESABRCurrentVideoID] = [request.HTTPBody copy];
         }
         NSData *config = YTKACEPBDataField(request.HTTPBody, 5);
@@ -107,7 +114,7 @@ void YTKACESABRSetNativeRequest(NSURLRequest *request) {
                 YTKACESABRBodiesByConfig = [NSMutableDictionary dictionary];
                 YTKACESABRHeadersByConfig = [NSMutableDictionary dictionary];
             }
-            if (YTKACESABRBodiesByConfig.count >= 32) {
+            if (YTKACESABRBodiesByConfig.count >= YTKACESABRRequestCacheLimit) {
                 [YTKACESABRBodiesByConfig removeAllObjects];
                 [YTKACESABRHeadersByConfig removeAllObjects];
             }
