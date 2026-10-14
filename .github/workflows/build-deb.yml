@@ -3,6 +3,8 @@ name: Deb
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
   workflow_call:
 
@@ -14,14 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Test
-        run: |
-          python3 -m unittest discover -s Tests -v
-          c++ -std=c++17 -O2 \
-            Tests/test_playback_watchdog.cpp \
-            Tweak/Features/Playback/PlaybackWatchdog.cpp \
-            -o /tmp/ytkace-playback-watchdog
-          /tmp/ytkace-playback-watchdog
+        # Upstream replaced PlaybackWatchdog and removed its C++ test in v1.0.0.
+        run: python3 -m unittest discover -s Tests -v
 
   build:
     needs: test
@@ -39,6 +38,8 @@ jobs:
       CI: true
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Cache Theos
         id: cache-theos

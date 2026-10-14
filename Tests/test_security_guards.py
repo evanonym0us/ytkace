@@ -36,6 +36,21 @@ class SecurityGuardTests(unittest.TestCase):
         self.assertIn("postNotificationName:YTKACEPreferencesDidChangeNotification", source)
         self.assertIn("dismissViewControllerAnimated:YES", source)
 
+    def test_new_sabr_session_cache_is_protected_and_excluded_from_backups(self):
+        source = (ROOT / "Tweak/Features/Downloads/SABRDownloader.mm").read_text()
+        self.assertIn("NSDataWritingFileProtectionCompleteUntilFirstUserAuthentication", source)
+        self.assertIn("NSURLIsExcludedFromBackupKey", source)
+        self.assertIn("YTKACESABRHasExactNativeBody", source)
+
+    def test_workflow_has_no_bundled_ipa_sources_or_removed_watchdog_test(self):
+        workflow = (ROOT / ".github/workflows/build-ipa.yml").read_text()
+        self.assertNotIn("dropbox.com", workflow)
+        self.assertNotIn("default:", workflow)
+        self.assertNotIn("matrix.target.url", workflow)
+        self.assertNotIn("action-hide-sensitive-inputs", workflow)
+        deb = (ROOT / ".github/workflows/build-deb.yml").read_text()
+        self.assertNotIn("test_playback_watchdog.cpp", deb)
+
 
 if __name__ == "__main__":
     unittest.main()

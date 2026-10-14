@@ -4,14 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       ipa_url:
-        description: YouTube IPA URL (iOS 16 base, 21.33.6)
+        description: User-supplied HTTPS YouTube IPA URL (iOS 16 base, 21.33.6)
         required: true
-        default: "https://www.dropbox.com/scl/fi/1m7rq3lpkg3mfsone2299/com.google.ios.youtube-21.33.6-eeveedecrypter.ipa?rlkey=b2nsvre89881puprynwkfau8q&st=4fkh7ry8&dl=1"
         type: string
       ipa_url_ios17:
-        description: Second YouTube IPA URL (iOS 17+ base, 21.34.3). Leave empty to build one IPA.
+        description: User-supplied HTTPS YouTube IPA URL (iOS 17+ base, 21.41.5). Leave empty to build only iOS 16.
         required: false
-        default: "https://www.dropbox.com/scl/fi/d4im6p9u2gho8rbwsfhru/com.google.ios.youtube-21.34.3-eeveedecrypter.ipa?rlkey=v2ekcrg6fyctm3gfbl8pki7zt&st=z5r5wwxf&dl=1"
         type: string
 
 permissions:
@@ -19,6 +17,7 @@ permissions:
 
 jobs:
   build:
+    needs: plan
     uses: ./.github/workflows/build-deb.yml
 
   plan:
@@ -26,24 +25,18 @@ jobs:
     outputs:
       targets: ${{ steps.targets.outputs.targets }}
     steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - name: Collect IPA bases
         id: targets
         env:
           IPA_URL: ${{ inputs.ipa_url }}
           IPA_URL_IOS17: ${{ inputs.ipa_url_ios17 }}
-        run: |
-          python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import json
-          import os
-
-          targets = [{"label": "ios16", "url": os.environ["IPA_URL"]}]
-          second = os.environ.get("IPA_URL_IOS17", "").strip()
-          if second:
-              targets.append({"label": "ios17", "url": second})
-          print("targets=" + json.dumps(targets))
-          PY
+        run: python3 Tools/ipa_workflow.py plan >> "$GITHUB_OUTPUT"
 
   package:
+    name: Package ${{ matrix.target.label }}
     needs: [build, plan]
     runs-on: macos-latest
     strategy:
@@ -52,53 +45,35 @@ jobs:
         target: ${{ fromJSON(needs.plan.outputs.targets) }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - uses: actions/download-artifact@v8
         with:
           name: YTKACE-deb-rootless
           path: packages
 
-      - uses: levibostian/action-hide-sensitive-inputs@v1
-
       - name: Setup
         run: brew install ldid dpkg
 
       - name: YouTube
         env:
-          IPA_URL: ${{ matrix.target.url }}
+          IPA_URL: ${{ inputs.ipa_url }}
+          IPA_URL_IOS17: ${{ inputs.ipa_url_ios17 }}
+          IPA_TARGET: ${{ matrix.target.label }}
           GH_TOKEN: ${{ github.token }}
-        run: |
-          if [[ "$IPA_URL" == "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/assets/"* ]]; then
-            curl --fail --location \
-              --header "Accept: application/octet-stream" \
-              --header "Authorization: Bearer $GH_TOKEN" \
-              "$IPA_URL" --output YouTube.ipa
-          else
-            curl --fail --location "$IPA_URL" --output YouTube.ipa
-          fi
-          file_type=$(file --mime-type -b YouTube.ipa)
-          if [[ "$file_type" != "application/x-ios-app" && "$file_type" != "application/zip" ]]; then
-            exit 1
-          fi
+        run: python3 Tools/ipa_workflow.py download --target "$IPA_TARGET"
 
       - name: Inject
         id: inject
+        env:
+          IPA_TARGET: ${{ matrix.target.label }}
         run: |
           mkdir deb-root
           dpkg-deb -x packages/*.deb deb-root
           export LDID="$(brew --prefix)/bin/ldid"
           tweak_version="$(awk '/^Version:/ {print $2}' control)"
-          youtube_version="$(python3 - <<'PY'
-          import plistlib
-          import zipfile
-
-          with zipfile.ZipFile('YouTube.ipa') as archive:
-              info = next(name for name in archive.namelist()
-                          if name.startswith('Payload/') and name.endswith('.app/Info.plist'))
-              print(plistlib.loads(archive.read(info))['CFBundleShortVersionString'])
-          PY
-          )"
-          output="YTKACE_${tweak_version}_YouTube_${youtube_version}.ipa"
+          output="$(python3 Tools/ipa_workflow.py name --target "$IPA_TARGET" --tweak-version "$tweak_version")"
           bash Scripts/sideload-repack.sh YouTube.ipa deb-root/var/jb/Library/MobileSubstrate/DynamicLibraries/YTKACE.dylib "$output"
           bash Tools/verify-artifacts.sh deb-root/var/jb/Library/MobileSubstrate/DynamicLibraries/YTKACE.dylib "$output"
           echo "ipa=$output" >> "$GITHUB_OUTPUT"
