@@ -1,18 +1,25 @@
 # Compatibility
 
-## Supplied baseline
+## Version 1.1.3 baselines
 
-YouTube 21.26.4 has a minimum deployment version of iOS 16.0 and links
-AppIntents. This baseline is therefore supported on iOS 16 and newer. Changing
-Info.plist alone cannot make it an iOS 15 application.
+| Build target | YouTube version | Supported iOS |
+| --- | --- | --- |
+| `ios16` | 21.33.6 | 16 and newer |
+| `ios17` | 21.41.5 | 17 and newer |
+
+The manual IPA workflow requires a supplied HTTPS URL for the iOS 16 base.
+Supplying the optional iOS 17 URL builds both targets with distinct artifact
+names. No proprietary IPA URLs are bundled in the workflow. Before injection,
+the workflow checks the bundle identifier, exact YouTube version, and minimum
+iOS version. Changing Info.plist alone cannot lower an application's actual
+OS requirements.
 
 The YTKACE dylib itself targets iOS 15 and can be repacked into an older
 YouTube baseline that also targets iOS 15.
 
 ## Architectures
 
-YTKACE builds arm64. The supplied YouTube executable is arm64, including on
-devices that support arm64e.
+YTKACE builds arm64, including for devices that support arm64e.
 
 ## YouTube updates
 

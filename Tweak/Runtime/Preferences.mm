@@ -48,26 +48,39 @@ void YTKACERegisterDefaults(void) {
         objectForKey:@"YTKACE.Preference.Gestures.LeftAction"] != nil;
     BOOL hasRightAction = [YTKACEDefaults()
         objectForKey:@"YTKACE.Preference.Gestures.RightAction"] != nil;
+    id legacyDownloadButton = [YTKACEDefaults()
+        objectForKey:@"YTKACE.Preference.Downloads.Enabled"];
+    BOOL hasPlacement = [YTKACEDefaults()
+        objectForKey:@"YTKACE.Preference.Downloads.Placement"] != nil;
     [YTKACEDefaults() registerDefaults:@{
         YTKACEMasterEnabledKey: @YES,
         YTKACENoAdsKey: @YES,
         YTKACEOLEDKey: @NO,
         YTKACEDownloadKey: @NO,
-        YTKACEBackgroundPlaybackKey: @NO,
+        YTKACEBackgroundPlaybackKey: @YES,
         YTKACEPiPKey: @NO,
         YTKACESpeedKey: @NO,
         YTKACELoopKey: @NO,
         @"YTKACE.Preference.Playback.CustomDoubleTap": @NO,
         @"YTKACE.Preference.Playback.TapToSeek": @NO,
         @"YTKACE.Preference.Sharing.NativeSheet": @NO,
+        @"YTKACE.Preference.Playback.OpenPaused": @NO,
+        @"YTKACE.Preference.Playback.Transcript": @NO,
+        @"YTKACE.Preference.Downloads.Subtitles": @NO,
+        @"YTKACE.Preference.Playback.CaptionLanguage": @"",
+        @"YTKACE.Preference.Shorts.PinchFullscreen": @NO,
         @"YTKACE.Preference.Shorts.RemixHidden": @NO,
         @"YTKACE.Preference.Shorts.ShareHidden": @NO,
+        @"YTKACE.Preference.Shorts.SaveHidden": @NO,
+        @"YTKACE.Preference.Downloads.PlaylistEnabled": @NO,
+        @"YTKACE.Preference.Downloads.Placement": @0,
         @"YTKACE.Preference.Shorts.CommentsHidden": @NO,
         @"YTKACE.Preference.Shorts.LikeHidden": @NO,
         @"YTKACE.Preference.Shorts.SoundHidden": @NO,
         @"YTKACE.Preference.Shorts.DownloadPosition": @0,
         @"YTKACE.Preference.Overlay.ProductsHidden": @NO,
         @"YTKACE.Preference.Feed.CommunityPostsHidden": @NO,
+        @"YTKACE.Preference.Feed.HorizontalShelvesHidden": @NO,
         @"YTKACE.Preference.Feed.MixesHidden": @NO,
         @"YTKACE.Preference.Feed.PlayablesHidden": @NO,
         @"YTKACE.Preference.Navigation.MessagesHidden": @NO,
@@ -82,7 +95,14 @@ void YTKACERegisterDefaults(void) {
         @"YTKACE.Preference.ActionBar.HypeHidden": @NO,
         @"YTKACE.Preference.ActionBar.ReportHidden": @NO,
         @"YTKACE.Preference.ActionBar.AskHidden": @NO,
+        @"YTKACE.Preference.ActionBar.OverflowHidden": @NO,
+        @"YTKACE.Preference.Overlay.FullscreenActionsHidden": @NO,
+        @"YTKACE.Preference.Player.HoldSpeedEnabled": @NO,
+        @"YTKACE.Preference.Player.HoldSpeedRate": @2.0,
+        @"YTKACE.Preference.Gestures.LandscapeOnly": @NO,
         @"YTKACE.Preference.Profiles.Preview": @YES,
+        @"YTKACE.Preference.Posts.SaveImage": @YES,
+        @"YTKACE.Preference.Downloads.SaveLocation": @0,
         @"YTKACE.Preference.Appearance.LaunchAnimationDisabled": @NO,
         @"YTKACE.Preference.Player.StartRate": @0,
         @"YTKACE.Preference.Player.CustomRate": @1.5,
@@ -98,9 +118,17 @@ void YTKACERegisterDefaults(void) {
         @"YTKACE.Preference.Gestures.HUDSize": @1,
         @"YTKACE.Preference.Gestures.HUDPosition": @0,
         @"YTKACE.Preference.Tabs.Startup": @"",
+        @"YTKACE.Preference.Feed.HomeTabsHidden": @NO,
         @"YTKACE.Preference.Shorts.LimitEnabled": @NO,
+        @"YTKACE.Preference.Playback.HLSMode": @NO,
+        @"YTKACE.Preference.Playback.Fix": @NO,
         @"YTKACE.Preference.Shorts.LimitCount": @20,
         @"YTKACE.Preference.Tabs.FrostedHidden": @NO,
+        @"YTKACE.Preference.Tabs.GlassMinimize": @NO,
+        @"YTKACE.Preference.Tabs.SelectedTint": @0,
+        @"YTKACE.Preference.Glass.Menus": @NO,
+        @"YTKACE.Preference.Glass.Notices": @NO,
+        @"YTKACE.Preference.Glass.Player": @NO,
         @"YTKACE.Preference.Playback.WiFiQuality": @0,
         @"YTKACE.Preference.Playback.CellularQuality": @0,
         @"YTKACE.Preference.SponsorBlock.Mode": @0,
@@ -112,6 +140,7 @@ void YTKACERegisterDefaults(void) {
         @"YTKACE.Preference.Tabs.Hidden.Live": @YES,
         @"YTKACE.Preference.Tabs.Hidden.Gaming": @YES,
         @"YTKACE.Preference.Tabs.Hidden.News": @YES,
+        @"YTKACE.Preference.Tabs.Hidden.Posts": @YES,
         @"YTKACE.Preference.Tabs.Hidden.Sports": @YES,
         @"YTKACE.Preference.Tabs.Hidden.Learning": @YES,
         @"YTKACE.Preference.Tabs.Hidden.Fashion": @YES,
@@ -121,6 +150,10 @@ void YTKACERegisterDefaults(void) {
         @"YTKACE.Preference.Tabs.Hidden.WatchLater": @YES,
         @"YTKACE.Preference.Tabs.Order": @[@"home", @"shorts", @"subscriptions", @"library", @"ytkace"]
     }];
+    if (!hasPlacement && [legacyDownloadButton boolValue]) {
+        [YTKACEDefaults() setInteger:1
+                              forKey:@"YTKACE.Preference.Downloads.Placement"];
+    }
     if ((!hasLeftAction || !hasRightAction) &&
         (legacyBrightnessSide != nil || legacyVolumeSide != nil)) {
         NSInteger brightness = legacyBrightnessSide != nil
@@ -160,11 +193,20 @@ void YTKACERegisterDefaults(void) {
                 URLByAppendingPathComponent:@"Cache"
                                 isDirectory:YES];
             [NSFileManager.defaultManager removeItemAtURL:cache error:nil];
+            YTKACEPurgeSystemCaches();
             [YTKACEDefaults() setObject:NSDate.date
                                  forKey:@"YTKACE.Preference.Downloads.LastCacheClear"];
         }
     }
     YTKACEPurgeDownloadScratch(NO);
+}
+
+NSInteger YTKACEDownloadPlacement(void) {
+    return [YTKACEDefaults() integerForKey:@"YTKACE.Preference.Downloads.Placement"];
+}
+
+BOOL YTKACEDownloadsEnabled(void) {
+    return YTKACEDownloadPlacement() != 0;
 }
 
 BOOL YTKACEMasterEnabled(void) {
@@ -316,6 +358,35 @@ static void YTKACERepairDownloads(NSURL *root) {
         [manager removeItemAtURL:[downloads URLByAppendingPathComponent:name isDirectory:YES]
                            error:nil];
     }
+}
+
+NSUInteger YTKACEPurgeSystemCaches(void) {
+    NSFileManager *manager = NSFileManager.defaultManager;
+    NSArray<NSURL *> *roots = [manager URLsForDirectory:NSCachesDirectory
+                                             inDomains:NSUserDomainMask];
+    NSUInteger freed = 0;
+    for (NSURL *root in roots) {
+        NSArray<NSURL *> *entries = [manager contentsOfDirectoryAtURL:root
+            includingPropertiesForKeys:@[NSURLTotalFileAllocatedSizeKey]
+                               options:0 error:nil];
+        for (NSURL *entry in entries) {
+            NSDirectoryEnumerator *walker = [manager enumeratorAtURL:entry
+                includingPropertiesForKeys:@[NSURLTotalFileAllocatedSizeKey]
+                                   options:0 errorHandler:nil];
+            NSNumber *own = nil;
+            [entry getResourceValue:&own forKey:NSURLTotalFileAllocatedSizeKey
+                              error:nil];
+            freed += own.unsignedIntegerValue;
+            for (NSURL *child in walker) {
+                NSNumber *size = nil;
+                [child getResourceValue:&size
+                                 forKey:NSURLTotalFileAllocatedSizeKey error:nil];
+                freed += size.unsignedIntegerValue;
+            }
+            [manager removeItemAtURL:entry error:nil];
+        }
+    }
+    return freed;
 }
 
 NSURL *YTKACEApplicationSupportDirectory(void) {
